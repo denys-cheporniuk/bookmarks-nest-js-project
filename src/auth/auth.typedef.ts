@@ -9,3 +9,13 @@ export class AuthSignUp {
   @IsNotEmpty()
   password: string;
 }
+
+export class AuthSignIn {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
