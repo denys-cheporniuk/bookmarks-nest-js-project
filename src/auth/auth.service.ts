@@ -1,12 +1,22 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthSignIn, AuthSignUp } from './auth.typedef';
-import * as argon from 'argon2';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import * as argon from 'argon2';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private config: ConfigService,
+  ) {}
   async signup(data: AuthSignUp) {
     try {
       const generatedHash = await argon.hash(data.password);
@@ -16,16 +26,9 @@ export class AuthService {
           email: data.email,
           hash: generatedHash,
         },
-        // TODO: rewrite select in a more convenient format
-        select: {
-          email: true,
-          firstName: true,
-          lastName: true,
-          createdAt: true,
-        },
       });
 
-      return user;
+      return this.signInToken(user.id, user.email);
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -42,14 +45,6 @@ export class AuthService {
       where: {
         email: data.email,
       },
-      // TODO: rewrite select in a more convenient format
-      select: {
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        hash: true,
-      },
     });
 
     if (!user) {
@@ -59,9 +54,30 @@ export class AuthService {
     const passwordMatch = await argon.verify(user.hash, data.password);
 
     if (!passwordMatch) {
-      throw new ForbiddenException('Password incorrect');
+      throw new UnauthorizedException('Password incorrect');
     }
 
-    return user;
+    return this.signInToken(user.id, user.email);
+  }
+
+  async signInToken(
+    userId: number,
+    email: string,
+  ): Promise<{ access_token: string }> {
+    const payload = {
+      id: userId,
+      email,
+    };
+
+    const secret = this.config.get('JWT_SECRET');
+
+    const accessToken = await this.jwt.signAsync(payload, {
+      expiresIn: '1d',
+      secret,
+    });
+
+    return {
+      access_token: accessToken,
+    };
   }
 }
