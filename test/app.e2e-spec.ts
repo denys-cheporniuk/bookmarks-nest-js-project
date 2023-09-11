@@ -4,6 +4,8 @@ import { AppModule } from '../src/app.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthSignUp } from '../src/auth/auth.typedef';
+import { UpdateUser } from '../src/user/user.typedef';
+import { CreateBookmark } from '../src/bookmark/bookmark.typedef';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -66,10 +68,7 @@ describe('App e2e', () => {
       });
 
       it('should throw error if body not provided', () => {
-        return pactum
-          .spec()
-          .post('/auth/signup')
-          .expectStatus(400);
+        return pactum.spec().post('/auth/signup').expectStatus(400);
       });
 
       it('should sign up', () => {
@@ -103,10 +102,7 @@ describe('App e2e', () => {
       });
 
       it('should throw error if body not provided', () => {
-        return pactum
-          .spec()
-          .post('/auth/signin')
-          .expectStatus(400);
+        return pactum.spec().post('/auth/signin').expectStatus(400);
       });
 
       it('should sign in', () => {
@@ -133,15 +129,85 @@ describe('App e2e', () => {
       });
     });
 
-    describe('edit user', () => {});
+    describe('update user', () => {
+      it('should update user', () => {
+        const updateValues: UpdateUser = {
+          firstName: 'test name',
+        };
+
+        return pactum
+          .spec()
+          .patch('/users/update')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .withBody(updateValues)
+          .expectStatus(200)
+          .expectBodyContains(updateValues.firstName);
+      });
+    });
   });
 
   describe('Bookmark', () => {
-    describe('get bookmark by id', () => {});
+    describe('should return empty bookmark', () => {
+      it('should return bookmark', () => {
+        return pactum
+          .spec()
+          .get('/bookmarks')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .expectStatus(200)
+          .expectBody([]);
+      });
+    });
 
-    describe('get bookmarks', () => {});
+    describe('create bookmarks', () => {
+      it('should create bookmark', () => {
+        const createValues: CreateBookmark = {
+          title: 'New Bookmark',
+          link: 'https://test',
+          description: 'test bookmark description',
+        };
 
-    describe('create bookmarks', () => {});
+        return pactum
+          .spec()
+          .post('/bookmarks')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .withBody(createValues)
+          .expectStatus(201)
+          .stores('bookmarkId', 'id');
+      });
+    });
+
+    describe('get bookmarks', () => {
+      it('should return bookmarks', () => {
+        return pactum
+          .spec()
+          .get('/bookmarks')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .expectStatus(200)
+          .expectJsonLength(1);
+      });
+    });
+
+    describe('get bookmark by id', () => {
+      it('should return bookmark by id', () => {
+        return pactum
+          .spec()
+          .get('/bookmarks/{id}')
+          .withPathParams('id', '$S{bookmarkId}')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .expectStatus(200)
+          .expectBodyContains('$S{bookmarkId}');
+      });
+    });
 
     describe('edit bookmark by id', () => {});
 
