@@ -209,8 +209,51 @@ describe('App e2e', () => {
       });
     });
 
-    describe('edit bookmark by id', () => {});
+    describe('update bookmark by id', () => {
+      it('should update bookmark', () => {
+        const updateValues = {
+          title: 'new title',
+          link: 'http://test1',
+          description: 'new description text',
+        };
 
-    describe('delete bookmarks', () => {});
+        return pactum
+          .spec()
+          .patch('/bookmarks/{id}')
+          .withPathParams('id', '$S{bookmarkId}')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .withBody(updateValues)
+          .expectStatus(200)
+          .expectBodyContains(updateValues.title)
+          .expectBodyContains(updateValues.link)
+          .expectBodyContains(updateValues.description);
+      });
+    });
+
+    describe('delete bookmarks', () => {
+      it('should delete bookmark', () => {
+        return pactum
+          .spec()
+          .delete('/bookmarks/{id}')
+          .withPathParams('id', '$S{bookmarkId}')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .expectStatus(204);
+      });
+
+      it('should get empty bookmarks', () => {
+        return pactum
+          .spec()
+          .get('/bookmarks')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAccessToken}',
+          })
+          .expectStatus(200)
+          .expectJsonLength(0);
+      });
+    });
   });
 });

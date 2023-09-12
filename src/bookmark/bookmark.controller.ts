@@ -2,7 +2,7 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
+  Get, HttpCode, HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -50,6 +50,7 @@ export class BookmarkController {
     return this.bookmarkService.updateBookmarkById(userId, bookmarkId, values);
   }
 
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
   deleteBookmarks(
     @GetUser('id') userId: number,
@@ -58,4 +59,3 @@ export class BookmarkController {
     return this.bookmarkService.deleteBookmarks(userId, bookmarkId);
   }
 }
-
